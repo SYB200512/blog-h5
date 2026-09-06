@@ -6,17 +6,58 @@
         class="header-nav"
         :class="{ 'header-nav-scrolled': isScrolled, 'header-nav-hidden': !navVisible }"
       >
-        <router-link to="/" class="logo">
+        <!-- Sunvyn 作为后台入口：后台为独立 SPA，新窗口打开；开发指向 5174，部署指向 /admin/ -->
+        <a :href="adminUrl" target="_blank" rel="noopener" class="logo" title="后台管理">
           <el-icon :size="24"><Reading /></el-icon>
           <span>Sunvyn</span>
-        </router-link>
-        <nav class="nav">
-          <router-link to="/" class="nav-item">首页</router-link>
-          <router-link to="/archive" class="nav-item">归档</router-link>
-          <router-link to="/about" class="nav-item">关于</router-link>
-          <!-- 后台为独立 SPA，用 a 标签跳出前台路由；开发指向 5174，部署指向 /admin/ -->
-          <a :href="adminUrl" target="_blank" rel="noopener" class="nav-item admin-link">后台管理</a>
-        </nav>
+        </a>
+        <div class="header-right">
+          <nav class="nav">
+            <router-link to="/" class="nav-item">首页</router-link>
+            <router-link to="/archive" class="nav-item">文章</router-link>
+            <router-link to="/about" class="nav-item">关于</router-link>
+          </nav>
+          <!-- 背景音乐：点击播放/暂停，悬停显示音量调节 -->
+          <div
+            class="music-player"
+            @mouseenter="showVolume = true"
+            @mouseleave="showVolume = false"
+          >
+            <button
+              type="button"
+              class="music-btn"
+              :class="{ 'is-playing': isPlaying }"
+              :title="isPlaying ? '暂停背景音乐' : '播放背景音乐'"
+              @click="togglePlay"
+            >
+              <el-icon :size="20">
+                <VideoPause v-if="isPlaying" />
+                <Headset v-else />
+              </el-icon>
+            </button>
+            <div class="volume-panel" :class="{ open: showVolume }">
+              <el-icon :size="14" class="vol-icon"><Mute /></el-icon>
+              <input
+                v-model.number="volume"
+                type="range"
+                class="volume-slider"
+                min="0"
+                max="1"
+                step="0.01"
+                @input="setVolume"
+              />
+              <span class="vol-percent">{{ Math.round(volume * 100) }}%</span>
+            </div>
+            <audio
+              ref="audioRef"
+              :src="musicUrl"
+              loop
+              preload="auto"
+              @play="isPlaying = true"
+              @pause="isPlaying = false"
+            />
+          </div>
+        </div>
       </div>
       <!-- Hero 文案：标题固定保留，副标题循环打字机 -->
       <div class="hero">
@@ -52,6 +93,31 @@ const currentYear = new Date().getFullYear()
 
 // 后台管理地址：开发环境为独立 dev server(5174)，生产为 /admin/ 路径
 const adminUrl = import.meta.env.DEV ? 'http://localhost:5174/' : '/admin/'
+
+// ===== 背景音乐 =====
+const audioRef = ref(null)
+const isPlaying = ref(false)
+const volume = ref(0.7)
+const showVolume = ref(false)
+// 本地音乐文件：位于 frontend/public/music/background-music.ogg
+const musicUrl = '/music/background-music.ogg'
+
+const togglePlay = () => {
+  const audio = audioRef.value
+  if (!audio) return
+  if (audio.paused) {
+    audio.play().catch(() => {
+      isPlaying.value = false
+    })
+  } else {
+    audio.pause()
+  }
+}
+
+const setVolume = () => {
+  const audio = audioRef.value
+  if (audio) audio.volume = volume.value
+}
 
 // ===== 标题：打字一次后固定保留，不参与循环消失 =====
 const fullTitle = 'Sunvyn'
@@ -143,6 +209,7 @@ onMounted(() => {
   runTitleOnce()
   runSubtitle()
   handleScroll()
+  if (audioRef.value) audioRef.value.volume = volume.value
   window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
@@ -225,6 +292,107 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* 背景音乐播放按钮 */
+.music-player {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.music-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.music-btn:hover {
+  background-color: rgba(255, 255, 255, 0.32);
+  transform: scale(1.08);
+}
+
+/* 音量调节面板：默认隐藏，悬停淡入 */
+.volume-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+  white-space: nowrap;
+}
+
+.volume-panel.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.vol-icon {
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.vol-percent {
+  color: #fff;
+  font-size: 12px;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* 音量滑动条 */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  outline: none;
+  cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
 }
 
 .nav {
@@ -313,8 +481,11 @@ onBeforeUnmount(() => {
   .nav {
     gap: 12px;
   }
-  .admin-link {
-    display: none;
+  .header-right {
+    gap: 10px;
+  }
+  .volume-slider {
+    width: 60px;
   }
   .hero-title {
     font-size: 36px;

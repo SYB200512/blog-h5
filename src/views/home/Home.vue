@@ -1,28 +1,24 @@
 <template>
-  <div>
-    <!-- 搜索栏 -->
-    <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索文章..." clearable class="search-input"
-        @keyup.enter="handleSearch" @clear="handleSearch">
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-button type="primary" @click="handleSearch">搜索</el-button>
+  <div class="home-layout">
+    <!-- 文章列表（左列，收窄宽度） -->
+    <div class="article-list">
+      <template v-if="articles.length">
+        <ArticleCard v-for="article in articles" :key="article.id" :article="article" />
+        <div class="pagination">
+          <el-pagination background layout="prev, pager, next" :total="total"
+            :page-size="pageSize" :current-page="page" @current-change="handlePageChange" />
+        </div>
+      </template>
+      <el-empty v-else description="暂无文章" />
     </div>
 
-    <!-- 文章列表 -->
-    <template v-if="articles.length">
-      <ArticleCard v-for="article in articles" :key="article.id" :article="article" />
-      <div class="pagination">
-        <el-pagination background layout="prev, pager, next" :total="total"
-          :page-size="pageSize" :current-page="page" @current-change="handlePageChange" />
-      </div>
-    </template>
-    <el-empty v-else description="暂无文章" />
-
-    <!-- 侧边栏信息 -->
+    <!-- 右侧栏：最新文章 / 分类 / 标签 / 归档 -->
     <aside class="sidebar">
+      <div class="widget">
+        <h3 class="widget-title">最新文章</h3>
+        <ArticleCard v-for="a in latestArticles" :key="a.id" :article="a" compact />
+      </div>
+
       <div class="widget">
         <h3 class="widget-title">分类</h3>
         <ul class="widget-list">
@@ -34,13 +30,26 @@
           </li>
         </ul>
       </div>
+
       <div class="widget">
-        <h3 class="widget-title">热门标签</h3>
+        <h3 class="widget-title">标签</h3>
         <div class="tag-cloud">
           <router-link v-for="tag in tags" :key="tag.id" :to="`/tag/${tag.id}`" class="tag-item">
             {{ tag.name }}
           </router-link>
         </div>
+      </div>
+
+      <div class="widget">
+        <h3 class="widget-title">归档</h3>
+        <ul class="widget-list">
+          <li v-for="m in archiveMonths" :key="m.month">
+            <router-link to="/archive" class="widget-link">
+              <span>{{ m.month }}</span>
+              <span class="count">{{ m.count }} 篇</span>
+            </router-link>
+          </li>
+        </ul>
       </div>
     </aside>
   </div>
@@ -50,7 +59,7 @@
 import { ref } from 'vue'
 import { useHead } from '@unhead/vue'
 import ArticleCard from '@/components/ArticleCard.vue'
-import { getArticles } from '@/api/article'
+import { getArticles, getArchive } from '@/api/article'
 import { getCategories } from '@/api/category'
 import { getTags } from '@/api/tag'
 
@@ -60,7 +69,10 @@ const tags = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = 10
-const keyword = ref('')
+
+// 侧栏数据
+const latestArticles = ref([])
+const archiveMonths = ref([])
 
 // 动态 head 信息（同步注册，避免 async setup 中丢失上下文）
 useHead({
@@ -88,13 +100,25 @@ try {
 } catch (e) {
   /* ignore */
 }
-
-// 搜索与分页（客户端交互）
-const handleSearch = () => {
-  page.value = 1
-  loadArticles()
+// 最新文章（侧栏，独立于当前分页）
+try {
+  const latest = await getArticles({ page: 1, page_size: 5 })
+  latestArticles.value = latest.list
+} catch (e) {
+  /* ignore */
+}
+// 归档（侧栏：月份 + 篇数）
+try {
+  const archive = await getArchive()
+  archiveMonths.value = Object.keys(archive).map((m) => ({
+    month: m,
+    count: archive[m].length,
+  }))
+} catch (e) {
+  /* ignore */
 }
 
+// 分页（客户端交互）
 const handlePageChange = (p) => {
   page.value = p
   loadArticles()
@@ -105,7 +129,6 @@ const loadArticles = async () => {
     const data = await getArticles({
       page: page.value,
       page_size: pageSize,
-      keyword: keyword.value || undefined,
     })
     articles.value = data.list
     total.value = data.total
@@ -116,14 +139,17 @@ const loadArticles = async () => {
 </script>
 
 <style scoped>
-.toolbar {
+.home-layout {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 24px;
+  align-items: flex-start;
 }
 
-.search-input {
-  max-width: 320px;
+/* 左列：文章列表（收窄宽度，右侧留出侧栏） */
+.article-list {
+  flex: 1;
+  min-width: 0;
+  max-width: 700px;
 }
 
 .pagination {
@@ -132,10 +158,12 @@ const loadArticles = async () => {
   margin: 24px 0;
 }
 
+/* 右侧栏：固定宽度，四块自上而下排列 */
 .sidebar {
-  margin-top: 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -163,6 +191,10 @@ const loadArticles = async () => {
   border-bottom: 1px dashed #eee;
 }
 
+.widget-list li:last-child {
+  border-bottom: none;
+}
+
 .widget-link {
   display: flex;
   justify-content: space-between;
@@ -179,6 +211,7 @@ const loadArticles = async () => {
   font-size: 12px;
 }
 
+/* 标签云 */
 .tag-cloud {
   display: flex;
   flex-wrap: wrap;
@@ -197,5 +230,16 @@ const loadArticles = async () => {
 .tag-item:hover {
   background: #409eff;
   color: #fff;
+}
+
+/* 窄屏：上下堆叠 */
+@media (max-width: 900px) {
+  .home-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
 }
 </style>
