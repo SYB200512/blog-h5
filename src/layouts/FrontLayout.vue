@@ -1,7 +1,7 @@
 <template>
   <div class="front-layout">
     <!-- 全屏 Hero 头部 -->
-    <header class="header">
+    <header class="header" :class="{ 'header-compact': isCompactPage }">
       <div
         class="header-nav"
         :class="{ 'header-nav-scrolled': isScrolled, 'header-nav-hidden': !navVisible }"
@@ -14,7 +14,8 @@
         <div class="header-right">
           <nav class="nav">
             <router-link to="/" class="nav-item">首页</router-link>
-            <router-link to="/archive" class="nav-item">文章</router-link>
+            <router-link to="/archive" class="nav-item">归档</router-link>
+            <router-link to="/categories" class="nav-item">分类</router-link>
             <router-link to="/about" class="nav-item">关于</router-link>
           </nav>
           <!-- 背景音乐：点击播放/暂停，悬停显示音量调节 -->
@@ -59,16 +60,19 @@
           </div>
         </div>
       </div>
-      <!-- Hero 文案：标题固定保留，副标题循环打字机 -->
+      <!-- Hero 文案：归档/分类页固定显示页面标题，无副标题；其他页保持打字机 -->
       <div class="hero">
-        <h1 class="hero-title">
-          {{ displayTitle }}
-          <span v-if="titleCursor" class="cursor">|</span>
-        </h1>
-        <p class="hero-subtitle">
-          {{ displaySubtitle }}
-          <span v-if="subtitleCursor" class="cursor">|</span>
-        </p>
+        <h1 v-if="isCompactPage" class="hero-title">{{ heroTitle }}</h1>
+        <template v-else>
+          <h1 class="hero-title">
+            {{ displayTitle }}
+            <span v-if="titleCursor" class="cursor">|</span>
+          </h1>
+          <p class="hero-subtitle">
+            {{ displaySubtitle }}
+            <span v-if="subtitleCursor" class="cursor">|</span>
+          </p>
+        </template>
       </div>
     </header>
 
@@ -88,8 +92,21 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const currentYear = new Date().getFullYear()
+
+// 归档、分类页面：Hero 压缩到视口 30%，正文块随之上升到页面 30% 位置
+const isCompactPage = computed(
+  () =>
+    route.path === '/archive' ||
+    route.path === '/categories' ||
+    route.path.startsWith('/category/')
+)
+
+// 压缩页 Hero 标题：复用路由 meta（归档 / 分类）
+const heroTitle = computed(() => (isCompactPage.value ? route.meta.title : ''))
 
 // 后台管理地址：开发环境为独立 dev server(5174)，生产为 /admin/ 路径
 const adminUrl = import.meta.env.DEV ? 'http://localhost:5174/' : '/admin/'
@@ -241,6 +258,25 @@ onBeforeUnmount(() => {
   background-repeat: no-repeat;
   /* 背景图固定不动：滚动时 hero 内容向上滚走，页面内容覆盖上来 */
   background-attachment: fixed;
+  /* 归档页切换时高度平滑过渡 */
+  transition: height 0.4s ease, min-height 0.4s ease;
+}
+
+/* 归档页：Hero 压缩到视口 30%，正文块随之上升到页面 30% 位置 */
+.header.header-compact {
+  height: 30vh;
+  min-height: 220px;
+}
+
+/* 压缩后 Hero 文案适当缩小，避免溢出 */
+.header-compact .hero-title {
+  font-size: 40px;
+  letter-spacing: 3px;
+}
+
+.header-compact .hero-subtitle {
+  margin-top: 10px;
+  font-size: 18px;
 }
 
 .header::before {
@@ -409,7 +445,7 @@ onBeforeUnmount(() => {
 }
 
 .nav-item:hover,
-.nav-item.router-link-active {
+.nav-item.router-link-exact-active {
   opacity: 0.8;
   border-bottom: 2px solid #fff;
 }

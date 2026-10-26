@@ -1,9 +1,7 @@
 <template>
   <div class="about-page">
     <div class="about-card">
-      <el-avatar :size="80" class="avatar">
-        <el-icon :size="40"><User /></el-icon>
-      </el-avatar>
+      <el-avatar :size="80" class="avatar" :src="'/images/head-sculpture.jpg'" />
       <h1 class="name">你好，我是站长</h1>
       <p class="bio">
         欢迎来到我的个人博客！这里记录我在技术路上的思考、学习笔记与生活随笔。

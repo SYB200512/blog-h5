@@ -19,7 +19,7 @@ a {
 }
 
 .container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -80,8 +80,9 @@ a {
 }
 
 .markdown-body pre {
-  background: #282c34;
-  color: #abb2bf;
+  background: #f6f8fa;
+  color: #383a42;
+  border: 1px solid #eceff1;
   padding: 1em;
   border-radius: 6px;
   overflow-x: auto;
