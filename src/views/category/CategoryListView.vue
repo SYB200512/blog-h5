@@ -1,31 +1,51 @@
 <template>
-  <div class="category-page">
-    <div class="page-header">
-      <h2>分类</h2>
-      <span class="header-count">共 {{ categories.length }} 个分类</span>
+  <div class="category-layout">
+    <!-- 左列：分类列表 -->
+    <div class="category-main">
+      <div class="page-header">
+        <h2>分类</h2>
+        <span class="header-count">共 {{ categories.length }} 个分类</span>
+      </div>
+
+      <div class="category-panel">
+        <ul v-if="categories.length" class="category-list">
+          <li v-for="cat in categories" :key="cat.id">
+            <router-link :to="`/category/${cat.id}`" class="category-item">
+              <span class="cat-dot"></span>
+              <span class="cat-name">{{ cat.name }}</span>
+              <span class="cat-count">({{ cat.article_count }})</span>
+            </router-link>
+          </li>
+        </ul>
+        <el-empty v-else description="暂无分类" />
+      </div>
     </div>
 
-    <div class="category-panel">
-      <ul v-if="categories.length" class="category-list">
-        <li v-for="cat in categories" :key="cat.id">
-          <router-link :to="`/category/${cat.id}`" class="category-item">
-            <span class="cat-dot"></span>
-            <span class="cat-name">{{ cat.name }}</span>
-            <span class="cat-count">({{ cat.article_count }})</span>
-          </router-link>
-        </li>
-      </ul>
-      <el-empty v-else description="暂无分类" />
-    </div>
+    <!-- 右侧栏：与归档页一致 -->
+    <BlogSidebar
+      :total-articles="totalArticles"
+      :total-tags="totalTags"
+      :total-categories="totalCategories"
+      :latest-articles="latestArticles"
+      :categories="categories"
+      :tags="tags"
+      :archive-months="archiveMonths"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useHead } from '@unhead/vue'
+import BlogSidebar from '@/components/BlogSidebar.vue'
+import { getArticles, getArchive } from '@/api/article'
 import { getCategories } from '@/api/category'
+import { getTags } from '@/api/tag'
 
 const categories = ref([])
+const tags = ref([])
+const archiveData = ref({})
+const latestArticles = ref([])
 
 // 动态 head（同步注册）
 useHead({
@@ -43,9 +63,53 @@ try {
 } catch (e) {
   /* ignore */
 }
+try {
+  tags.value = await getTags()
+} catch (e) {
+  /* ignore */
+}
+try {
+  archiveData.value = await getArchive()
+} catch (e) {
+  /* ignore */
+}
+// 侧栏最新文章
+try {
+  const latest = await getArticles({ page: 1, page_size: 5 })
+  latestArticles.value = latest.list
+} catch (e) {
+  /* ignore */
+}
+
+// 侧栏统计
+const totalArticles = computed(() =>
+  Object.values(archiveData.value).reduce((sum, items) => sum + items.length, 0)
+)
+const totalTags = computed(() => tags.value.length)
+const totalCategories = computed(() => categories.value.length)
+const archiveMonths = computed(() =>
+  Object.keys(archiveData.value).map((m) => ({
+    month: m,
+    count: archiveData.value[m].length,
+  }))
+)
 </script>
 
 <style scoped>
+.category-layout {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* 左列：与归档页同宽（最多 700px） */
+.category-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 700px;
+}
+
 .page-header {
   background: #fff;
   border-radius: 10px;
@@ -55,6 +119,13 @@ try {
   display: flex;
   align-items: baseline;
   gap: 12px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
 }
 
 .header-count {
@@ -122,14 +193,16 @@ try {
   color: #95a5a6;
   font-size: 13px;
 }
-</style>
 
-<style>
-/* 非 scoped：仅在本页面存在时把外层容器加宽（模仿模板的宽容器布局），不影响其他页面 */
-.container.main:has(.category-page) {
-  width: min(100% - 48px, 1440px);
-  max-width: min(100% - 48px, 1440px);
-  padding-left: 24px;
-  padding-right: 24px;
+/* 窄屏：侧栏下移，单列布局 */
+@media (max-width: 900px) {
+  .category-layout {
+    flex-direction: column;
+  }
+
+  .category-main {
+    width: 100%;
+    max-width: none;
+  }
 }
 </style>

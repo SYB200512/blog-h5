@@ -14,7 +14,7 @@ export const routes = [
       { path: 'tag/:id', name: 'tag', component: () => import('@/views/tag/TagView.vue'), meta: { title: '标签' } },
       { path: 'archive', name: 'archive', component: () => import('@/views/archive/ArchiveView.vue'), meta: { title: '归档' } },
       { path: 'categories', name: 'categories', component: () => import('@/views/category/CategoryListView.vue'), meta: { title: '分类' } },
-      { path: 'about', name: 'about', component: () => import('@/views/about/AboutView.vue'), meta: { title: '关于' } },
+      { path: 'photos', name: 'photos', component: () => import('@/views/photos/PhotosView.vue'), meta: { title: '图片墙' } },
     ],
   },
   // 404

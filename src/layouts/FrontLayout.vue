@@ -16,7 +16,7 @@
             <router-link to="/" class="nav-item">首页</router-link>
             <router-link to="/archive" class="nav-item">归档</router-link>
             <router-link to="/categories" class="nav-item">分类</router-link>
-            <router-link to="/about" class="nav-item">关于</router-link>
+            <router-link to="/photos" class="nav-item">图片</router-link>
           </nav>
           <!-- 背景音乐：点击播放/暂停，悬停显示音量调节 -->
           <div
@@ -76,15 +76,21 @@
       </div>
     </header>
 
-    <!-- 内容区 -->
-    <main class="container main">
+    <!-- 内容区：归档页与分类页强制撑满容器（容器上限仍沿用 1200px） -->
+    <main class="container main" :class="{ 'container-wide': isWidePage }">
       <router-view />
     </main>
 
     <!-- 底部 -->
     <footer class="footer">
       <div class="container">
-        <p>© {{ currentYear }} 我的博客 · Powered by Vue & Go</p>
+        <p class="footer-text">
+          © {{ currentYear }} Sunvyn
+          <span class="footer-heart">❤️</span>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="footer-beian">
+            豫ICP备2026044888号-1
+          </a>
+        </p>
       </div>
     </footer>
   </div>
@@ -97,16 +103,26 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const currentYear = new Date().getFullYear()
 
-// 归档、分类页面：Hero 压缩到视口 30%，正文块随之上升到页面 30% 位置
+// 归档、分类、图片页面：Hero 压缩，正文块随之上移
 const isCompactPage = computed(
   () =>
     route.path === '/archive' ||
     route.path === '/categories' ||
+    route.path === '/photos' ||
     route.path.startsWith('/category/')
 )
 
 // 压缩页 Hero 标题：复用路由 meta（归档 / 分类）
 const heroTitle = computed(() => (isCompactPage.value ? route.meta.title : ''))
+
+// 带侧栏的宽版页面：归档 / 分类列表 / 图片墙（撑满容器宽度）
+const isWidePage = computed(
+  () =>
+    route.path === '/archive' ||
+    route.path === '/categories' ||
+    route.path === '/photos' ||
+    route.path.startsWith('/category/')
+)
 
 // 后台管理地址：开发环境为独立 dev server(5174)，生产为 /admin/ 路径
 const adminUrl = import.meta.env.DEV ? 'http://localhost:5174/' : '/admin/'
@@ -504,6 +520,11 @@ onBeforeUnmount(() => {
   padding: 24px 16px;
 }
 
+/* 归档页：撑满容器宽度；上限仍由 .container 的 1200px 控制 */
+.container-wide {
+  width: 100%;
+}
+
 .footer {
   background: #fff;
   border-top: 1px solid #eee;
@@ -511,6 +532,31 @@ onBeforeUnmount(() => {
   text-align: center;
   color: #999;
   font-size: 14px;
+}
+
+/* 底部文案：© 年份 Sunvyn ❤ 备案号 */
+.footer-text {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  letter-spacing: 0.5px;
+}
+
+.footer-heart {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.footer-beian {
+  color: #999;
+  transition: color 0.2s;
+}
+
+.footer-beian:hover {
+  color: #409eff;
 }
 
 @media (max-width: 768px) {
