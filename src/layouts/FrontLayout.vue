@@ -78,7 +78,13 @@
 
     <!-- 内容区：归档页与分类页强制撑满容器（容器上限仍沿用 1200px） -->
     <main class="container main" :class="{ 'container-wide': isWidePage }">
-      <router-view />
+      <!-- 路由切换：旧页面先快速淡出，新页面淡入并上移 20px 归位，
+           缓动曲线与参考站点一致（cubic-bezier(0.4, 0, 0.2, 1)） -->
+      <router-view v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
+      </router-view>
     </main>
 
     <!-- 底部 -->
@@ -525,6 +531,33 @@ onBeforeUnmount(() => {
 .main {
   flex: 1;
   padding: 24px 16px;
+}
+
+/* 路由切换动画：进入 0.28s 淡入 + 上移归位；离开 0.12s 快速淡出 */
+.page-enter-active {
+  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-leave-active {
+  transition: opacity 0.12s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-leave-to {
+  opacity: 0;
+}
+
+/* 用户系统开启“减少动态效果”时不做动画 */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: none;
+  }
 }
 
 /* 归档页：撑满容器宽度；上限仍由 .container 的 1200px 控制 */
