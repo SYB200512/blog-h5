@@ -78,13 +78,12 @@
 
     <!-- 内容区：归档页与分类页强制撑满容器（容器上限仍沿用 1200px） -->
     <main class="container main" :class="{ 'container-wide': isWidePage }">
-      <!-- 路由切换：旧页面先快速淡出，新页面淡入并上移 20px 归位，
-           缓动曲线与参考站点一致（cubic-bezier(0.4, 0, 0.2, 1)） -->
-      <router-view v-slot="{ Component }">
-        <Transition name="page" mode="out-in">
-          <component :is="Component" :key="route.fullPath" />
-        </Transition>
-      </router-view>
+      <!-- 路由切换动画：以 fullPath 作为 key，每次切页都重新播放入场动画。
+           不用 <Transition>：路由组件是异步 chunk，加载期间组件根节点还不存在，
+           过渡类会被提前移除，动画看起来“没生效” -->
+      <div :key="route.fullPath" class="page-body">
+        <router-view />
+      </div>
     </main>
 
     <!-- 底部 -->
@@ -533,30 +532,45 @@ onBeforeUnmount(() => {
   padding: 24px 16px;
 }
 
-/* 路由切换动画：进入 0.28s 淡入 + 上移归位；离开 0.12s 快速淡出 */
-.page-enter-active {
-  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+/* 路由切换动画：整块先淡入，块内左右两栏再依次上滑归位 */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.page-leave-active {
-  transition: opacity 0.12s ease;
+@keyframes page-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.page-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
+.page-body {
+  animation: page-fade-in 0.24s ease-out both;
 }
 
-.page-leave-to {
-  opacity: 0;
+/* 直接子元素（列表主栏 / 侧边栏）错开 60ms 依次入场 */
+.page-body > * {
+  animation: page-block-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-body > *:nth-child(2) {
+  animation-delay: 0.06s;
 }
 
 /* 用户系统开启“减少动态效果”时不做动画 */
 @media (prefers-reduced-motion: reduce) {
-  .page-enter-active,
-  .page-leave-active {
-    transition: none;
+  .page-body,
+  .page-body > * {
+    animation: none;
   }
 }
 

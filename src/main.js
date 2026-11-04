@@ -9,7 +9,7 @@ import { routes } from './router'
 import './assets/main.css'
 
 // 导出 createApp 供 vite-ssg 在客户端与 SSR 构建时使用
-export const createApp = ViteSSG(App, { routes }, ({ app }) => {
+export const createApp = ViteSSG(App, { routes }, ({ app, router, isClient }) => {
   // Element Plus
   app.use(ElementPlus, { locale: zhCn })
 
@@ -19,5 +19,12 @@ export const createApp = ViteSSG(App, { routes }, ({ app }) => {
   // 注册所有图标
   for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
+  }
+
+  // 切页后回到顶部：否则会带着上一页的滚动位置进入新页面，视觉上像是“跳了一下”
+  if (isClient) {
+    router.afterEach(() => {
+      window.scrollTo(0, 0)
+    })
   }
 })
