@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 首屏背景图提前加载，避免 LCP 被 CSS 解析顺序拖慢 -->
+    <link rel="preload" as="image" href="/images/blog-picture.jpg" fetchpriority="high" />
     <meta name="description" content="个人博客 - 记录技术、生活与思考" />
     <title>我的博客</title>
   </head>

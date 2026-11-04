@@ -53,7 +53,7 @@
               ref="audioRef"
               :src="musicUrl"
               loop
-              preload="auto"
+              preload="none"
               @play="isPlaying = true"
               @pause="isPlaying = false"
             />
@@ -268,7 +268,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   color: #fff;
-  background-image: url('/images/blog-picture.png');
+  background-image: url('/images/blog-picture.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -276,6 +276,13 @@ onBeforeUnmount(() => {
   background-attachment: fixed;
   /* 归档页切换时高度平滑过渡 */
   transition: height 0.4s ease, min-height 0.4s ease;
+}
+
+/* 移动端关闭 fixed 背景，避免滚动时反复重绘导致卡顿 */
+@media (max-width: 768px) {
+  .header {
+    background-attachment: scroll;
+  }
 }
 
 /* 归档页：Hero 压缩到视口 30%，正文块随之上升到页面 30% 位置 */
