@@ -78,11 +78,13 @@
 
     <!-- 内容区：归档页与分类页强制撑满容器（容器上限仍沿用 1200px） -->
     <main class="container main" :class="{ 'container-wide': isWidePage }">
-      <!-- 路由切换动画：以 fullPath 作为 key，每次切页都重新播放入场动画。
-           不用 <Transition>：路由组件是异步 chunk，加载期间组件根节点还不存在，
-           过渡类会被提前移除，动画看起来“没生效” -->
+      <!-- 路由切换动画：以 fullPath 作为 key，切页时重建容器，入场动画重新播放。
+           Suspense 必须包在内容区内部：各视图 setup 里有顶层 await（异步 setup），
+           没有 Suspense 组件永远只渲染一个空注释；放在这里则只有内容区等待，导航栏不受影响 -->
       <div :key="route.fullPath" class="page-body">
-        <router-view />
+        <Suspense>
+          <router-view />
+        </Suspense>
       </div>
     </main>
 
@@ -532,16 +534,8 @@ onBeforeUnmount(() => {
   padding: 24px 16px;
 }
 
-/* 路由切换动画：整块先淡入，块内左右两栏再依次上滑归位 */
-@keyframes page-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
+/* 路由切换动画：内容区解析完成后整块淡入上滑
+   （Suspense 内的视图挂载时才播放入场，避免动画先播完、内容后出现） */
 @keyframes page-block-in {
   from {
     opacity: 0;
@@ -553,22 +547,12 @@ onBeforeUnmount(() => {
   }
 }
 
-.page-body {
-  animation: page-fade-in 0.24s ease-out both;
-}
-
-/* 直接子元素（列表主栏 / 侧边栏）错开 60ms 依次入场 */
 .page-body > * {
   animation: page-block-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.page-body > *:nth-child(2) {
-  animation-delay: 0.06s;
-}
-
 /* 用户系统开启“减少动态效果”时不做动画 */
 @media (prefers-reduced-motion: reduce) {
-  .page-body,
   .page-body > * {
     animation: none;
   }
