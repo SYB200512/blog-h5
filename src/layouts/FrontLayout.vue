@@ -62,7 +62,7 @@
       </div>
       <!-- Hero 文案：归档/分类页固定显示页面标题，无副标题；其他页保持打字机 -->
       <div class="hero">
-        <h1 v-if="isCompactPage" class="hero-title">{{ heroTitle }}</h1>
+        <h1 v-if="isCompactPage" :key="route.fullPath" class="hero-title">{{ heroTitle }}</h1>
         <template v-else>
           <h1 class="hero-title">
             {{ displayTitle }}
@@ -539,7 +539,19 @@ onBeforeUnmount(() => {
 @keyframes page-block-in {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 压缩页（归档/分类/图片）的 Hero 标题：每次切页重新上滑淡入 */
+@keyframes hero-title-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
   }
   to {
     opacity: 1;
@@ -548,12 +560,17 @@ onBeforeUnmount(() => {
 }
 
 .page-body > * {
-  animation: page-block-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-block-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.header-compact .hero-title {
+  animation: hero-title-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* 用户系统开启“减少动态效果”时不做动画 */
 @media (prefers-reduced-motion: reduce) {
-  .page-body > * {
+  .page-body > *,
+  .header-compact .hero-title {
     animation: none;
   }
 }
