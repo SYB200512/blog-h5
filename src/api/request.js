@@ -13,14 +13,16 @@ const baseURL = import.meta.env.SSR
 const request = axios.create({
   baseURL,
   timeout: 10000,
+  // refresh token 在 HttpOnly Cookie 中，跨域直连后端时必须允许携带凭证
+  withCredentials: true,
 })
 
-// 请求拦截器：附加 token（SSR 阶段无 localStorage）
+// 请求拦截器：附加 access token（SSR 阶段无 localStorage）
 request.interceptors.request.use(
   (config) => {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers['x-access-token'] = token
     }
     return config
   },
@@ -30,6 +32,14 @@ request.interceptors.request.use(
 // 响应拦截器：统一处理业务码
 request.interceptors.response.use(
   (response) => {
+    // 后端无感续签成功时通过响应头下发新的 access token
+    const newToken = response.headers['new-access-token']
+    if (newToken && typeof localStorage !== 'undefined') {
+      localStorage.setItem('token', newToken)
+      const expiresAt = response.headers['new-access-expires-at']
+      if (expiresAt) localStorage.setItem('tokenExpiresAt', expiresAt)
+    }
+
     const res = response.data
     // 非 JSON 响应直接返回
     if (res.code === undefined) return res
